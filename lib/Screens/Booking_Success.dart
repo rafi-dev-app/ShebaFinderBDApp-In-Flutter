@@ -17,7 +17,7 @@ class BookingSuccessScreen extends StatelessWidget {
             children: [
               const Spacer(),
 
-              // গোল্ডেন টিক মার্ক এবং গ্লো ইফেক্ট
+
               Center(
                 child: Stack(
                   alignment: Alignment.center,
@@ -69,7 +69,6 @@ class BookingSuccessScreen extends StatelessWidget {
 
               const Spacer(),
 
-              // দুটি বাটন (রেফারেন্স অনুযায়ী)
               Row(
                 children: [
                   // View My Bookings
@@ -78,11 +77,11 @@ class BookingSuccessScreen extends StatelessWidget {
                       height: 55,
                       child: ElevatedButton(
                         onPressed: () {
-                          // পরে বুকিং লিস্ট পেজ যুক্ত করবো
+
                           Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const HomeScreen(initialIndex: 1)), (route) => false);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF101D42), // নেভি ব্লু বাটন
+                          backgroundColor: const Color(0xFF101D42),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
                         child: const Text("View My Bookings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

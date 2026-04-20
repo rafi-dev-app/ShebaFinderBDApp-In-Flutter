@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-// ==========================================
-// ২. বুকিং লিস্ট
-// ==========================================
 class TechBookings extends StatelessWidget {
   const TechBookings();
 

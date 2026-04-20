@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ফায়ারবেস অথেন্টিকেশন
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shebafinderbdnew/Screens/HomePage.dart';
 import 'package:shebafinderbdnew/Screens/RoleSelection.dart';
+import 'package:shebafinderbdnew/Screens/auth/ForgetPassword.dart';
 import 'package:shebafinderbdnew/Screens/auth/userSignup.dart';
+
 import 'package:shebafinderbdnew/Screens/Admin_Screen/admin_dashboard.dart';
 
 class UserLoginScreen extends StatefulWidget {
-  final bool isAdmin; // অ্যাডমিন ট্রিকের জন্য
+  final bool isAdmin;
   const UserLoginScreen({super.key, this.isAdmin = false});
 
   @override
@@ -14,31 +16,39 @@ class UserLoginScreen extends StatefulWidget {
 }
 
 class _UserLoginScreenState extends State<UserLoginScreen> {
-  // ইনপুট ফিল্ড কন্ট্রোল করার জন্য
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  bool isLoading = false; // লোডিং এর জন্য
-  bool isPasswordVisible = false; // পাসওয়ার্ড দেখানোর জন্য
+  bool isLoading = false;
+  bool isPasswordVisible = false;
 
-  // লগইন লজিক
   void _loginUser() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || !email.contains('@')) {
+      _showSnackBar("Please enter a valid email", Colors.redAccent);
+      return;
+    }
+    if (password.isEmpty) {
+      _showSnackBar("Please enter your password", Colors.redAccent);
+      return;
+    }
+
     setState(() => isLoading = true);
 
     try {
-      // ফায়ারবেসে লগইন যাচাই
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: email,
+        password: password,
       );
 
-      // অ্যাডমিন ট্রিক (Temporary)
-      if (_emailController.text.trim() == 'admin@gmail.com') {
+      // অ্যাডমিন চেক
+      if (email == 'admin@gmail.com') {
         if (mounted) {
-          // অ্যাডমিন হলে হোম পেজে যাবে না, সরাসরি অ্যাডমিন পেজে যাবে
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const AdminDashboardScreen()), // পরে আমরা এই পেজ বানাবো
+            MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
                 (route) => false,
           );
         }
@@ -55,19 +65,33 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
     } on FirebaseAuthException catch (e) {
       String msg = "Login Failed";
       if (e.code == 'user-not-found') {
-        msg = "No user found for this email.";
-      } else if (e.code == 'wrong-password'){ msg = "Wrong password.";}
-      else if (e.code == 'invalid-email') {msg = "Invalid email format.";}
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
-        );
+        msg = "No account found with this email.";
+      } else if (e.code == 'wrong-password') {
+        msg = "Wrong password.";
+      } else if (e.code == 'invalid-email') {
+        msg = "Invalid email format.";
+      } else if (e.code == 'network-request-failed') {
+        msg = "No internet connection.";
       }
+      if (mounted) _showSnackBar(msg, Colors.redAccent);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,7 +99,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
       backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Padding(
-          padding:  EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +108,11 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
 
                 IconButton(
                   icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                  onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>RoleSelectionScreen()), (route)=>false),
+                  onPressed: () => Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                        (route) => false,
+                  ),
                 ),
 
                 const SizedBox(height: 40),
@@ -105,14 +133,13 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
 
                 const SizedBox(height: 40),
 
-
                 _buildTextField(
                   controller: _emailController,
                   hint: "Email Address",
                   icon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 20),
-            
 
                 _buildTextField(
                   controller: _passwordController,
@@ -125,34 +152,35 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                       color: Colors.white54,
                     ),
                     onPressed: () {
-                      setState(() {
-                        isPasswordVisible = !isPasswordVisible;
-                      });
+                      setState(() => isPasswordVisible = !isPasswordVisible);
                     },
                   ),
                 ),
-            
+
 
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                      );
+                    },
                     child: const Text(
                       "Forgot Password?",
                       style: TextStyle(color: Color(0xFFFFC65C), fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
-            
+
                 const SizedBox(height: 30),
-            
 
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
                     onPressed: isLoading ? null : _loginUser,
-            
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF101D42),
                       disabledBackgroundColor: const Color(0xFF101D42).withValues(alpha: 0.5),
@@ -166,9 +194,8 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     ),
                   ),
                 ),
-            
+
                 const SizedBox(height: 25),
-            
 
                 Row(
                   children: const [
@@ -180,9 +207,8 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     Expanded(child: Divider(color: Colors.white24)),
                   ],
                 ),
-            
+
                 const SizedBox(height: 25),
-            
 
                 SizedBox(
                   width: double.infinity,
@@ -216,7 +242,6 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                 ),
 
                 const SizedBox(height: 40),
-            
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -248,10 +273,12 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
     required IconData icon,
     bool isObscure = false,
     Widget? suffixIcon,
+    TextInputType? keyboardType,
   }) {
     return TextField(
       controller: controller,
       obscureText: isObscure,
+      keyboardType: keyboardType,
       autofillHints: const [AutofillHints.email],
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(

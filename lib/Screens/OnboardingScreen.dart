@@ -35,7 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // উপরের ডার্ক অংশ
+
           Expanded(
             flex: 6,
             child: Container(
@@ -47,7 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   bottomRight: Radius.circular(50),
                 ),
               ),
-              // ছবির বদলে আইকন ব্যবহার করা হয়েছে
+
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -55,17 +55,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     SizedBox(
                       height:
                           MediaQuery.of(context).size.height *
-                          0.3, // screen-এর 30%
+                          0.3,
                       width:
                           MediaQuery.of(context).size.width *
-                          0.6, // screen-এর 60%
+                          0.6,
                       child: Lottie.asset(
                         controller: _controller,
                         "Assets/animations/call center Lottie animation.json",
                         repeat: true,
                         reverse: true,
                         fit: BoxFit
-                            .contain, // animation কে container-এর মধ্যে সুন্দরভাবে রাখবে
+                            .contain,
                       ),
                     ),
                   ],
@@ -74,7 +74,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ),
 
-          // নিচের হোয়াইট অংশ
+
           Expanded(
             flex: 4,
             child: Padding(

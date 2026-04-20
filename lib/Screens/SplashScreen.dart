@@ -62,7 +62,7 @@ class _SplashScreensState extends State<SplashScreens> {
             ),
           ),
           Positioned(
-            bottom: 80, // আগে এখানে 50 ছিল, 80 করে দিন
+            bottom: 80,
             left: 50,
             right: 50,
             child: const SizedBox(

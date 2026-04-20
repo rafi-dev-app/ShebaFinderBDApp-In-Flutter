@@ -18,7 +18,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // উপরের গ্র্যাডিয়েন্ট ব্যাকগ্রাউন্ড
+
             Container(
               height: 300,
               width: double.infinity,
@@ -31,7 +31,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 10),
-                    // প্রোফাইল ছবি
+
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFC65C), width: 3)),
@@ -46,7 +46,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     const SizedBox(height: 5),
                     const Text("mehedi@gmail.com", style: TextStyle(color: Colors.white54)),
                     const SizedBox(height: 10),
-                    // Edit Profile বাটন
+
                     ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFC65C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
@@ -59,7 +59,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 30),
 
-            // সেটিংস মেনু
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -72,16 +71,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                   const Divider(color: Colors.white10, height: 40),
 
-                  // লগআউট বাটন
+
                   ListTile(
 
                       onTap: () async {
                         if (mounted) await Future.delayed(const Duration(milliseconds: 100));
-                        // ১. ফায়ারবেস থেকে সরাসরি লগআউট করা হচ্ছে
+
                         await FirebaseAuth.instance.signOut();
 
                         if (context.mounted) {
-                          // ২. ইউজারকে মেসেজ দেখানো
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Logged out successfully'),
@@ -89,7 +88,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             ),
                           );
 
-                          // ৩. অ্যাপের সব পেজ মুছে স্প্ল্যাশ/রোল সিলেকশন পেজে নিয়ে যাওয়া
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(builder: (context) => const RoleSelectionScreen()), // আপনার রোল সিলেকশন পেজের নাম ঠিক করে দেবেন

@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -9,13 +7,14 @@ class BookingListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // বর্তমান লগইন করা ইউজারের ID নিচ্ছি
     String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    // যদি কোনো কারণে ইউজার লগইন না থাকে
     if (currentUserId == null) {
-      return const Center(
-        child: Text("Please login to see bookings", style: TextStyle(color: Colors.white54)),
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F172A),
+        body: Center(
+          child: Text("Please login to see bookings", style: TextStyle(color: Colors.white54)),
+        ),
       );
     }
 
@@ -24,145 +23,126 @@ class BookingListScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("My Bookings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text("My Bookings",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // শুধুমাত্র আমার বুকিংগুলো ফিল্টার করে আনছি
+
         stream: FirebaseFirestore.instance
             .collection('bookings')
             .where('userId', isEqualTo: currentUserId)
-            .orderBy('bookingTime', descending: true) // নতুন বুকিং আগে দেখাবে
+            .orderBy('bookingTime', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-
-          // ✅ ১. এরর চেক (ইনডেক্স এরর হলে এখানে ধরা পড়বে)
           if (snapshot.hasError) {
-            print("Firestore Error: ${snapshot.error}");
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text("Error: ${snapshot.error}",
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
+            return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.redAccent)));
           }
 
-          // ✅ ২. লোডিং চেক
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFFFC65C))
-            );
+            return const Center(child: CircularProgressIndicator(color: Color(0xFFFFC65C)));
           }
 
-          // ✅ ৩. ডেটা খালি কিনা চেক
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.calendar_month_outlined, size: 80, color: Colors.white24),
+                  Icon(Icons.calendar_today_outlined, size: 70, color: Colors.white24),
                   SizedBox(height: 15),
-                  Text("No Bookings Yet!", style: TextStyle(color: Colors.white54, fontSize: 18)),
+                  Text("No Bookings Found!", style: TextStyle(color: Colors.white54, fontSize: 16)),
                 ],
               ),
             );
           }
 
-          // ✅ ৪. ডেটা পেলে লিস্ট দেখানো
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               var doc = snapshot.data!.docs[index];
-              Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+              var data = doc.data() as Map<String, dynamic>;
 
-              // ছবি ডিকোড করা হচ্ছে
-              Uint8List? imageBytes;
-              if (data['techImageBase64'] != null && data['techImageBase64'].isNotEmpty) {
-                try {
-                  imageBytes = base64Decode(data['techImageBase64']);
-                } catch (e) {
-                  imageBytes = null;
-                }
+              String status = data['status'] ?? 'Pending';
+              Color statusColor;
+              IconData statusIcon;
+
+              switch (status) {
+                case 'Accepted':
+                  statusColor = Colors.blueAccent;
+                  statusIcon = Icons.thumb_up_alt_outlined;
+                  break;
+                case 'In Progress':
+                  statusColor = Colors.purpleAccent;
+                  statusIcon = Icons.run_circle_outlined;
+                  break;
+                case 'Completed':
+                  statusColor = Colors.greenAccent;
+                  statusIcon = Icons.verified_outlined;
+                  break;
+                case 'Rejected':
+                case 'Cancelled':
+                  statusColor = Colors.redAccent;
+                  statusIcon = Icons.block_flipped;
+                  break;
+                default: // Pending
+                  statusColor = const Color(0xFFFFC65C);
+                  statusIcon = Icons.hourglass_empty_rounded;
               }
-
-              // বুকিং এর স্ট্যাটাস অনুযায়ী কালার দেখাবে
-              Color statusColor = data['status'] == 'Pending' ? Colors.orange :
-              data['status'] == 'Accepted' ? Colors.green : Colors.red;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: statusColor.withOpacity(0.2), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
                 ),
-                child: Row(
-                  children: [
-                    // টেকনিশিয়ানের ছবি
-                    Container(
-                      height: 60,
-                      width: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(15),
-                        image: imageBytes != null
-                            ? DecorationImage(image: MemoryImage(imageBytes), fit: BoxFit.cover)
-                            : null,
-                      ),
-                      child: imageBytes == null
-                          ? const Icon(Icons.person, color: Colors.white54, size: 30)
-                          : null,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    collapsedIconColor: Colors.white54,
+                    iconColor: statusColor,
+                    // টাইল এর মূল অংশ
+                    title: Text(
+                      data['techName'] ?? "Technician",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
-                    const SizedBox(width: 15),
-
-                    // টেকনিশিয়ানের তথ্য
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Row(
                         children: [
-                          Text(
-                            data['techName'] ?? "Unknown Technician",
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            data['techCategory'] ?? "Service",
-                            style: const TextStyle(color: Colors.white54, fontSize: 13),
-                          ),
-                          const SizedBox(height: 8),
-                          // বুকিং স্ট্যাটাস ব্যাজ
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              data['status'] ?? "Pending",
-                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                          ),
+                          Icon(statusIcon, color: statusColor, size: 14),
+                          const SizedBox(width: 6),
+                          Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 13)),
                         ],
                       ),
                     ),
 
-                    // সময়
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Icon(Icons.access_time, color: Colors.white24, size: 16),
-                        const SizedBox(height: 5),
-                        Text(
-                          _formatDate(data['bookingTime'] ?? ""),
-                          style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Column(
+                          children: [
+                            const Divider(color: Colors.white10),
+                            _buildDetailRow(Icons.settings_suggest_outlined, "Service", data['techCategory'] ?? 'N/A'),
+                            _buildDetailRow(Icons.event_available, "Date", data['date'] ?? 'N/A'),
+                            _buildDetailRow(Icons.alarm, "Time", data['time'] ?? 'N/A'),
+                            _buildDetailRow(Icons.location_on_outlined, "Address", data['userAddress'] ?? 'No Address Provided'),
+                            if (data['problemDescription'] != null)
+                              _buildDetailRow(Icons.description_outlined, "Problem", data['problemDescription']),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      )
+                    ],
+                  ),
                 ),
               );
             },
@@ -172,10 +152,26 @@ class BookingListScreen extends StatelessWidget {
     );
   }
 
-  // ডেট ফরমেট করার ছোট্ট হেল্পার মেথড
-  String _formatDate(String isoString) {
-    if (isoString.isEmpty) return "";
-    DateTime dt = DateTime.parse(isoString);
-    return "${dt.day}/${dt.month}/${dt.year}";
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFFFFC65C)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(text: "$label: ", style: const TextStyle(color: Colors.white38, fontSize: 13)),
+                  TextSpan(text: value, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -1,8 +1,101 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shebafinderbdnew/Screens/auth/UserLoginScreen.dart';
 
-class UserSignupScreen extends StatelessWidget {
+class UserSignupScreen extends StatefulWidget {
   const UserSignupScreen({super.key});
+
+  @override
+  State<UserSignupScreen> createState() => _UserSignupScreenState();
+}
+
+class _UserSignupScreenState extends State<UserSignupScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool isLoading = false;
+  bool isPasswordVisible = false;
+  bool agreeToTerms = false;
+
+
+  void _signupUser() async {
+
+    if (_nameController.text.trim().isEmpty) {
+      _showSnackBar("Please enter your name", Colors.redAccent);
+      return;
+    }
+    if (_emailController.text.trim().isEmpty || !_emailController.text.trim().contains('@')) {
+      _showSnackBar("Please enter a valid email", Colors.redAccent);
+      return;
+    }
+    if (_phoneController.text.trim().isEmpty || _phoneController.text.trim().length < 11) {
+      _showSnackBar("Please enter a valid phone number", Colors.redAccent);
+      return;
+    }
+    if (_passwordController.text.trim().length < 6) {
+      _showSnackBar("Password must be at least 6 characters", Colors.redAccent);
+      return;
+    }
+    if (!agreeToTerms) {
+      _showSnackBar("Please agree to the Terms and Conditions", Colors.redAccent);
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+
+      await userCredential.user?.updateDisplayName(_nameController.text.trim());
+
+
+      if (mounted) {
+        _showSnackBar("Account created successfully!", Colors.green);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const UserLoginScreen()),
+              (route) => false,
+        );
+      }
+
+    } on FirebaseAuthException catch (e) {
+      String msg = "Signup Failed";
+      if (e.code == 'email-already-in-use') {
+        msg = "This email is already registered. Please login.";
+      } else if (e.code == 'weak-password') {
+        msg = "Password is too weak. Use at least 6 characters.";
+      } else if (e.code == 'invalid-email') {
+        msg = "Invalid email format.";
+      } else if (e.code == 'network-request-failed') {
+        msg = "No internet connection. Please try again.";
+      }
+      if (mounted) _showSnackBar(msg, Colors.redAccent);
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,32 +126,62 @@ class UserSignupScreen extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // নাম ইনপুট
-              _buildTextField("Full Name", Icons.person_outline),
+
+              _buildTextField(
+                controller: _nameController,
+                hint: "Full Name",
+                icon: Icons.person_outline,
+              ),
               const SizedBox(height: 20),
 
-              // ইমেইল ইনপুট
-              _buildTextField("Email", Icons.email_outlined),
+
+              _buildTextField(
+                controller: _emailController,
+                hint: "Email",
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+              ),
               const SizedBox(height: 20),
 
-              // ফোন ইনপুট
-              _buildTextField("Phone", Icons.phone_outlined),
+
+              _buildTextField(
+                controller: _phoneController,
+                hint: "Phone (01XXXXXXXXX)",
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
               const SizedBox(height: 20),
 
-              // পাসওয়ার্ড ইনপুট
-              _buildTextField("Password", Icons.lock_outline, isObscure: true),
+
+              _buildTextField(
+                controller: _passwordController,
+                hint: "Password (min 6 characters)",
+                icon: Icons.lock_outline,
+                isObscure: !isPasswordVisible,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white54,
+                  ),
+                  onPressed: () {
+                    setState(() => isPasswordVisible = !isPasswordVisible);
+                  },
+                ),
+              ),
 
               const SizedBox(height: 15),
 
-              // টার্মস অ্যান্ড কন্ডিশন চেকবক্স (আপনার রেফারেন্স ইমেজ অনুযায়ী)
+
               Row(
                 children: [
                   SizedBox(
                     width: 24,
                     height: 24,
                     child: Checkbox(
-                      value: false, // ডেমোর জন্য সবসময় চেক থাকবে
-                      onChanged: (val) {},
+                      value: agreeToTerms,
+                      onChanged: (val) {
+                        setState(() => agreeToTerms = val ?? false);
+                      },
                       activeColor: const Color(0xFFFFC65C),
                       checkColor: const Color(0xFF0F172A),
                     ),
@@ -75,25 +198,20 @@ class UserSignupScreen extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // সাইনআপ বাটন (গোল্ডেন কালার)
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // সাইনআপ সফল হলে লগইন পেজে পাঠিয়ে দেবে
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const UserLoginScreen()),
-                          (route) => false,
-                    );
-                  },
+                  onPressed: isLoading ? null : _signupUser,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFC65C),
+                    disabledBackgroundColor: const Color(0xFFFFC65C).withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     elevation: 5,
                   ),
-                  child: const Text(
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Color(0xFF0F172A), strokeWidth: 2)
+                      : const Text(
                     "Create Account",
                     style: TextStyle(
                       color: Color(0xFF0F172A),
@@ -104,6 +222,27 @@ class UserSignupScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 30),
+
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Already have an account? ", style: TextStyle(color: Colors.white54)),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => const UserLoginScreen()),
+                      );
+                    },
+                    child: const Text(
+                      "Login",
+                      style: TextStyle(color: Color(0xFFFFC65C), fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -111,15 +250,24 @@ class UserSignupScreen extends StatelessWidget {
     );
   }
 
-  // ইনপুট ফিল্ড বানানোর কমন মেথড (লগইন এর মতোই)
-  Widget _buildTextField(String hint, IconData icon, {bool isObscure = false}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isObscure = false,
+    Widget? suffixIcon,
+    TextInputType? keyboardType,
+  }) {
     return TextField(
+      controller: controller,
       obscureText: isObscure,
+      keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white38),
         prefixIcon: Icon(icon, color: const Color(0xFFFFC65C)),
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: const Color(0xFF1E293B),
         border: OutlineInputBorder(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shebafinderbdnew/Screens/Technician/technician_registration_form.dart';
+import 'package:shebafinderbdnew/Screens/auth/techLogin.dart';
 import 'package:shebafinderbdnew/Screens/auth/UserLoginScreen.dart';
-
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -16,19 +16,12 @@ class RoleSelectionScreen extends StatelessWidget {
             const SizedBox(height: 60),
             const Text(
               "Choose Your Path",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 10),
             const Text(
               "What brings you here today?",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white54,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.white54),
             ),
 
             const Spacer(),
@@ -37,7 +30,7 @@ class RoleSelectionScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  // ইউজার কার্ড
+
                   buildRoleCard(
                     context: context,
                     icon: Icons.person_outline,
@@ -51,22 +44,47 @@ class RoleSelectionScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // টেকনিশিয়ান কার্ড
+
                   buildRoleCard(
                     context: context,
                     icon: Icons.handyman_outlined,
                     title: "Looking for a Job?",
                     description: "Join as a Technician & grow your business.",
                     buttonText: "Register Now",
-                    isGold: true, // এটাকে গোল্ডেন হাইলাইট করা হচ্ছে
+                    isGold: true,
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const TechnicianRegistrationScreen(),),);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const TechnicianRegistrationScreen()));
                     },
+
+                    extraWidget: Padding(
+                      padding: const EdgeInsets.only(top: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text("Already have an account? ",
+                              style: TextStyle(color: Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w500)),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => TechnicianLoginScreen()));
+                            },
+                            child: const Text(
+                              "Login here",
+                              style: TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 30),
 
-                  // অ্যাডমিনের সিক্রেট ট্রিক (অতি ছোট টেক্সট, সহজে চোখে পড়ে না)
+
                   GestureDetector(
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const UserLoginScreen(isAdmin: true)));
@@ -87,6 +105,7 @@ class RoleSelectionScreen extends StatelessWidget {
     );
   }
 
+
   Widget buildRoleCard({
     required BuildContext context,
     required IconData icon,
@@ -94,7 +113,8 @@ class RoleSelectionScreen extends StatelessWidget {
     required String description,
     required String buttonText,
     required VoidCallback onTap,
-    bool isGold = false, // গোল্ডেন ইফেক্ট দেখানোর জন্য
+    bool isGold = false,
+    Widget? extraWidget,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -121,7 +141,7 @@ class RoleSelectionScreen extends StatelessWidget {
               ),
               child: Icon(icon, size: 40, color: isGold ? const Color(0xFF0F172A) : const Color(0xFF1B264D)),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
             Text(
               title,
               style: TextStyle(
@@ -130,7 +150,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 color: isGold ? const Color(0xFF0F172A) : Colors.black,
               ),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
             Text(
               description,
               textAlign: TextAlign.center,
@@ -140,7 +160,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 25),
             SizedBox(
               width: double.infinity,
               height: 45,
@@ -149,17 +169,14 @@ class RoleSelectionScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isGold ? const Color(0xFF0F172A) : const Color(0xFF4A78DA),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   elevation: 0,
                 ),
-                child: Text(
-                  buttonText,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
+                child: Text(buttonText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
+
+            if (extraWidget != null) extraWidget,
           ],
         ),
       ),

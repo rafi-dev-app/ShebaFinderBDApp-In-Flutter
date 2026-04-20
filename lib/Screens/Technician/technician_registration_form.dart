@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shebafinderbdnew/Screens/Technician/technician_home.dart';
+import 'package:shebafinderbdnew/Screens/RoleSelection.dart';
 
 class TechnicianRegistrationScreen extends StatefulWidget {
   const TechnicianRegistrationScreen({super.key});
@@ -17,20 +18,22 @@ class _TechnicianRegistrationScreenState extends State<TechnicianRegistrationScr
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _experienceController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController(); // নতুন কন্ট্রোলার
 
-  String selectedCategory = "Electrician"; // ডিফল্ট ক্যাটাগরি
+  bool isPasswordVisible = false;
+  bool isConfirmPasswordVisible = false;
+  String selectedCategory = "Electrician";
   bool isLoading = false;
 
-  // Image select ar Base64 string er jonno state
   File? _selectedImage;
   String? _base64Image;
 
-  // ক্যাটাগরির লিস্ট
   final List<String> categories = [
     "Electrician", "Plumber", "Carpenter", "Painter", "AC Technician", "Cleaner"
   ];
 
-  // Image Gallery theke neyar function
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -44,95 +47,108 @@ class _TechnicianRegistrationScreenState extends State<TechnicianRegistrationScr
       File imageFile = File(pickedFile.path);
       List<int> imageBytes = await imageFile.readAsBytes();
 
-      // FIREBASE 1MB LIMIT CHECK: 900KB er beshi hole image nibona
       if (imageBytes.length > 900000) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Image is too large! Please select a smaller image."),
-              backgroundColor: Colors.red,
-            ),
+            const SnackBar(content: Text("Image is too large! Max 900KB allowed."), backgroundColor: Colors.red),
           );
         }
         return;
       }
 
-      String base64String = base64Encode(imageBytes);
-
       setState(() {
         _selectedImage = imageFile;
-        _base64Image = base64String;
+        _base64Image = base64Encode(imageBytes);
       });
     }
   }
 
   void _submitRegistration() async {
-    // Validation: Name ar Phone must dite hobe
-    if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill up Name and Phone Number"), backgroundColor: Colors.red),
-      );
+    // ভ্যালিডেশন
+    if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty || _emailController.text.trim().isEmpty) {
+      _showSnackBar("Please fill all required fields", Colors.redAccent);
+      return;
+    }
+    if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
+      _showSnackBar("Passwords do not match!", Colors.redAccent); // পাসওয়ার্ড ম্যাচিং চেক
+      return;
+    }
+    if (_passwordController.text.trim().length < 6) {
+      _showSnackBar("Password must be at least 6 characters", Colors.redAccent);
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      // ফায়ারবেস ডেটাবেসে 'technicians' নামের কালেকশনে ডেটা পাঠানো হচ্ছে
-      await FirebaseFirestore.instance.collection('technicians').add({
+
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+
+      await FirebaseFirestore.instance.collection('technicians').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'address': _addressController.text.trim(),
+        'email': _emailController.text.trim(),
         'category': selectedCategory,
         'experience': _experienceController.text.trim(),
-        'imageBase64': _base64Image, // <--- EITA ADD KORLAM (Image string)
+        'imageBase64': _base64Image,
         'totalRatingSum': 0.0,
         'ratingCount': 0,
         'isAvailable': false,
-        'appliedAt': DateTime.now().toIso8601String(),
-        'status': 'pending', // <--- DUPLICATE STATUS REMOVE KORLAM
+        'appliedAt': FieldValue.serverTimestamp(),
+        'status': 'pending',
       });
 
+      await FirebaseAuth.instance.signOut();
 
-      if (mounted) {
-        // ডেটাবেসে গেছে, এখন সাকসেস মেসেজ দেখাও
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1E293B),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Icon(Icons.check_circle, color: Color(0xFFFFC65C), size: 60),
-            content: const Text(
-              "Application Submitted!\n\nWe will review your profile. Once approved, you can log in.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, height: 1.5),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Dialog close
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TechnicianHomeScreen()), // Ei page e niye jabe
-                  );
-                },
-                child: const Text("OK", style: TextStyle(color: Color(0xFFFFC65C), fontWeight: FontWeight.bold)),
-              )
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      // যদি কোনো এরর হয় (যেমন ইন্টারনেট না থাকলে)
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to submit: ${e.toString()}"), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _showSuccessDialog();
+
+    } on FirebaseAuthException catch (e) {
+      String msg = e.message ?? "Registration Failed";
+      _showSnackBar(msg, Colors.redAccent);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Icon(Icons.check_circle, color: Color(0xFFFFC65C), size: 60),
+        content: const Text(
+          "Registration Successful!\n\nAdmin will review your profile. Once approved, you can login.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white70, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                    (route) => false,
+              );
+            },
+            child: const Text("OK", style: TextStyle(color: Color(0xFFFFC65C), fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -146,20 +162,13 @@ class _TechnicianRegistrationScreenState extends State<TechnicianRegistrationScr
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Technician Registration", style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 20,
-          bottom: 30,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
-            const Text("Join Our Team", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+            const Text("Join Our Team", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
             const Text("Fill up your professional details", style: TextStyle(color: Colors.white54)),
 
@@ -169,46 +178,60 @@ class _TechnicianRegistrationScreenState extends State<TechnicianRegistrationScr
             Center(
               child: GestureDetector(
                 onTap: _pickImage,
-                child: Container(
-                  height: 120,
-                  width: 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFFFC65C), width: 2),
-                  ),
-                  child: _selectedImage != null
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(60),
-                    child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                  )
-                      : const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.camera_alt, color: Color(0xFFFFC65C), size: 40),
-                      SizedBox(height: 5),
-                      Text("Add Photo", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    ],
-                  ),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: const Color(0xFF1E293B),
+                  backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+                  child: _selectedImage == null
+                      ? const Icon(Icons.camera_alt, color: Color(0xFFFFC65C), size: 40)
+                      : null,
                 ),
               ),
             ),
+
             const SizedBox(height: 30),
-            // --- END OF IMAGE PICKER ---
 
             _buildTextField("Full Name", Icons.person_outline, _nameController),
             const SizedBox(height: 20),
-            _buildTextField("Phone Number", Icons.phone_outlined, _phoneController),
+            _buildTextField("Phone Number", Icons.phone_outlined, _phoneController, keyboardType: TextInputType.phone),
             const SizedBox(height: 20),
-            _buildTextField("Shop / Living Address", Icons.location_on_outlined, _addressController),
+            _buildTextField("Address", Icons.location_on_outlined, _addressController),
+            const SizedBox(height: 20),
+            _buildTextField("Email Address", Icons.email_outlined, _emailController, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 20),
 
-            // ক্যাটাগরি ড্রপডাউন
+            // Password Field
+            _buildTextField(
+              "Password",
+              Icons.lock_outline,
+              _passwordController,
+              isObscure: !isPasswordVisible,
+              suffixIcon: IconButton(
+                icon: Icon(isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.white38),
+                onPressed: () => setState(() => isPasswordVisible = !isPasswordVisible),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Confirm Password Field
+            _buildTextField(
+              "Confirm Password",
+              Icons.lock_reset,
+              _confirmPasswordController,
+              isObscure: !isConfirmPasswordVisible,
+              suffixIcon: IconButton(
+                icon: Icon(isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.white38),
+                onPressed: () => setState(() => isConfirmPasswordVisible = !isConfirmPasswordVisible),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Category Dropdown
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("Service Category", style: TextStyle(color: Color(0xFFFFC65C), fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
@@ -218,15 +241,8 @@ class _TechnicianRegistrationScreenState extends State<TechnicianRegistrationScr
                       isExpanded: true,
                       dropdownColor: const Color(0xFF1E293B),
                       style: const TextStyle(color: Colors.white),
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white54),
-                      items: categories.map((String item) {
-                        return DropdownMenuItem(value: item, child: Text(item));
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedCategory = newValue!;
-                        });
-                      },
+                      items: categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      onChanged: (val) => setState(() => selectedCategory = val!),
                     ),
                   ),
                 ),
@@ -234,11 +250,10 @@ class _TechnicianRegistrationScreenState extends State<TechnicianRegistrationScr
             ),
 
             const SizedBox(height: 20),
-            _buildTextField("Experience (e.g., 3 Years)", Icons.work_history_outlined, _experienceController),
+            _buildTextField("Experience (e.g. 3 Years)", Icons.work_history_outlined, _experienceController),
 
             const SizedBox(height: 40),
 
-            // সাবমিট বাটন
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -259,22 +274,25 @@ class _TechnicianRegistrationScreenState extends State<TechnicianRegistrationScr
       ),
     );
   }
-  Widget _buildTextField(String hint, IconData icon, TextEditingController controller) {
+
+  Widget _buildTextField(String hint, IconData icon, TextEditingController controller, {bool isObscure = false, Widget? suffixIcon, TextInputType? keyboardType}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(hint, style: const TextStyle(color: Color(0xFFFFC65C), fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         TextField(
           controller: controller,
+          obscureText: isObscure,
+          keyboardType: keyboardType,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
-            hintText: "Enter $hint",
-            hintStyle: const TextStyle(color: Colors.white24),
             prefixIcon: Icon(icon, color: const Color(0xFFFFC65C)),
+            suffixIcon: suffixIcon,
             filled: true,
             fillColor: const Color(0xFF1E293B),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFFFFC65C), width: 1)),
           ),
         ),
       ],

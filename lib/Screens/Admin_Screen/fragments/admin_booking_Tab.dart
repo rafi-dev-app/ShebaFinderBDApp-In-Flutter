@@ -30,7 +30,7 @@ class AdminBookingsTab extends StatelessWidget {
 
             String currentStatus = data['status'] ?? "Pending";
 
-            // স্ট্যাটাস অনুযায়ী কালার
+
             Color statusColor = currentStatus == 'Pending' ? Colors.orange :
             currentStatus == 'Accepted' ? Colors.blue :
             Colors.green; // Completed
@@ -59,7 +59,7 @@ class AdminBookingsTab extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // বর্তমান স্ট্যাটাস দেখাচ্ছে
+
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -72,7 +72,7 @@ class AdminBookingsTab extends StatelessWidget {
                         ),
                       ),
 
-                      // স্ট্যাটাস চেঞ্জ করার ড্রপডাউন
+
                       DropdownButton<String>(
                         value: currentStatus,
                         dropdownColor: const Color(0xFF1E293B),
@@ -86,7 +86,7 @@ class AdminBookingsTab extends StatelessWidget {
                         ],
                         onChanged: (String? newValue) {
                           if (newValue != null) {
-                            // ফায়ারবেসে স্ট্যাটাস আপডেট করা হচ্ছে
+
                             doc.reference.update({'status': newValue});
 
                             ScaffoldMessenger.of(context).showSnackBar(

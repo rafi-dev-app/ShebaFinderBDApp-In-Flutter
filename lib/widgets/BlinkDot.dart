@@ -1,4 +1,4 @@
-// ব্লিংকিং অ্যানিমেশনের জন্য আলাদা উইজেট
+
 import 'package:flutter/material.dart';
 class BlinkingDot extends StatefulWidget {
   final Color color;
@@ -21,19 +21,19 @@ class _BlinkingDotState extends State<BlinkingDot> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    // অ্যানিমেশন কন্ট্রোলার: ১ সেকেন্ড সময় ধরে হবে এবং বারবার হবে (repeat)
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
     )..repeat();
 
-    // অ্যানিমেশন ভ্যালু: ০ থেকে ১ এর মধ্যে চলে
+
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
   }
 
   @override
   void dispose() {
-    _controller.dispose(); // মেমোরি লিক এড়ানোর জন্য
+    _controller.dispose();
     super.dispose();
   }
 
@@ -42,7 +42,7 @@ class _BlinkingDotState extends State<BlinkingDot> with SingleTickerProviderStat
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
-        // অ্যানিমেশন যত এগোবে, Opacity ১ থেকে ০.১ এ নেমে আসবে (ম্লান হয়ে যাবে)
+
         return Opacity(
           opacity: 1.0 - (_animation.value * 0.8),
           child: child,
@@ -54,7 +54,7 @@ class _BlinkingDotState extends State<BlinkingDot> with SingleTickerProviderStat
         decoration: BoxDecoration(
           color: widget.color,
           shape: BoxShape.circle,
-          // একটু আলো ছড়ানোর জন্য boxShadow দেওয়া হয়েছে
+
           boxShadow: [
             BoxShadow(
               color: widget.color.withValues(alpha: 0.5),

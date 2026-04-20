@@ -228,13 +228,11 @@ Widget _technicianCard(
 
   return InkWell(
     onTap: () {
+      // ✅ এখন শুধু docId পাঠাচ্ছি, StreamBuilder বাকিটা নিজেই আনবে
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => TechnicianDetailScreen(
-            techData: data, // Shob data detail page e pathacchi
-            docId: docId,   // Doc id pathacchi
-          ),
+          builder: (_) => TechnicianDetailScreen(docId: docId),
         ),
       );
     },
@@ -247,8 +245,6 @@ Widget _technicianCard(
       ),
       child: Row(
         children: [
-
-          /// Profile Image
           Container(
             height: 65,
             width: 65,
@@ -263,30 +259,19 @@ Widget _technicianCard(
             )
                 : const Icon(Icons.person, color: Colors.white54, size: 30),
           ),
-
           const SizedBox(width: 15),
-
-          /// Info Section
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                /// Name + Verified
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
-
-                    /// Verified Badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -297,55 +282,28 @@ Widget _technicianCard(
                         children: [
                           Icon(Icons.verified, color: Colors.green, size: 14),
                           SizedBox(width: 3),
-                          Text(
-                            "Verified",
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          Text("Verified", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 5),
-
-                /// Role (Category use korchi)
-                Text(
-                  category, // <--- EKHON ERROR DHORBE NA
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
-                  ),
-                ),
-
+                Text(category, style: const TextStyle(color: Colors.white54, fontSize: 13)),
                 const SizedBox(height: 6),
-
-                /// Rating + Status
                 Row(
                   children: [
                     const Icon(Icons.star, color: Colors.orange, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      averageRating.toStringAsFixed(1), // <--- EKHON ERROR DHORBE NA
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      averageRating.toStringAsFixed(1),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                     ),
-
                     const Spacer(),
-
-                    /// Availability
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isAvailable
-                            ? Colors.green.withOpacity(0.2)
-                            : Colors.red.withOpacity(0.2),
+                        color: isAvailable ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -362,10 +320,7 @@ Widget _technicianCard(
               ],
             ),
           ),
-
           const SizedBox(width: 8),
-
-          /// Arrow
           const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
         ],
       ),
